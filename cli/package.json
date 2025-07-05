@@ -1,15 +1,18 @@
 {
-  "name": "walrus-video-scripts",
+  "name": "greenstream",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "CLI tool to convert MP4 videos to HLS and upload to Walrus",
+  "main": "dist/index.js",
+  "bin": {
+    "greenstream": "dist/src/cli.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "tsc && node dist/scripts.js",
-    "dev": "ts-node scripts.ts"
+    "start": "tsc && node dist/src/cli.js",
+    "dev": "ts-node src/cli.ts"
   },
-  "keywords": [],
+  "keywords": ["video", "hls", "walrus", "cli", "streaming"],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.12.4",
