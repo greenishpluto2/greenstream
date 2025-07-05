@@ -12,6 +12,7 @@
   "dependencies": {
     "@mysten/sui": "^1.35.0",
     "@mysten/walrus": "^0.2.1",
+    "hls.js": "^1.6.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

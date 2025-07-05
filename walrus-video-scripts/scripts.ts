@@ -1,4 +1,3 @@
-
 import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
@@ -37,39 +36,39 @@ interface WalrusCLIResult {
   path: string;
 }
 
-async function uploadFileViaCLI(filePath: string, assetsDir: string): Promise<string> {
-  try {
-    console.log(`Uploading via CLI: ${filePath}`);
-    const result = execSync(`walrus store "${filePath}" --epochs 2 --json`, {
-      encoding: "utf8",
-      cwd: assetsDir,
-    });
+// async function uploadFileViaCLI(filePath: string, assetsDir: string): Promise<string> {
+//   try {
+//     console.log(`Uploading via CLI: ${filePath}`);
+//     const result = execSync(`walrus store "${filePath}" --epochs 2 --json`, {
+//       encoding: "utf8",
+//       cwd: assetsDir,
+//     });
 
-    const results: WalrusCLIResult[] = JSON.parse(result);
-    const fileResult = results.find((r) => r.path === path.basename(filePath));
+//     const results: WalrusCLIResult[] = JSON.parse(result);
+//     const fileResult = results.find((r) => r.path === path.basename(filePath));
 
-    if (!fileResult) {
-      throw new Error(`No result found for ${filePath}`);
-    }
+//     if (!fileResult) {
+//       throw new Error(`No result found for ${filePath}`);
+//     }
 
-    const blobId =
-      fileResult.blobStoreResult.alreadyCertified?.blobId || fileResult.blobStoreResult.newlyCreated?.blobObject.blobId;
+//     const blobId =
+//       fileResult.blobStoreResult.alreadyCertified?.blobId || fileResult.blobStoreResult.newlyCreated?.blobObject.blobId;
 
-    if (!blobId) {
-      throw new Error(`No blob ID found in result for ${filePath}`);
-    }
+//     if (!blobId) {
+//       throw new Error(`No blob ID found in result for ${filePath}`);
+//     }
 
-    console.log(`✓ Uploaded ${filePath} -> ${blobId}`);
-    return blobId;
-  } catch (error) {
-    console.error(`Error uploading ${filePath}:`, error);
-    throw error;
-  }
-}
+//     console.log(`✓ Uploaded ${filePath} -> ${blobId}`);
+//     return blobId;
+//   } catch (error) {
+//     console.error(`Error uploading ${filePath}:`, error);
+//     throw error;
+//   }
+// }
 
 async function uploadMultipleFilesViaCLI(filePaths: string[], assetsDir: string): Promise<BlobMapping> {
   const blobMappings: BlobMapping = {};
-  
+
   try {
     console.log(`Uploading ${filePaths.length} files via CLI...`);
     const result = execSync(`walrus store ${filePaths.map((p) => `"${p}"`).join(" ")} --epochs 2 --json`, {
@@ -122,7 +121,6 @@ async function uploadHLSAssetsToWalrus(assetsDir: string): Promise<{
 
     for (const file of files) {
       if (file.endsWith(".ts")) {
-        const filePath = path.join(streamPath, file);
         const relativePath = path.join(streamDir, file);
         allSegmentFiles.push(relativePath);
       }
@@ -134,7 +132,10 @@ async function uploadHLSAssetsToWalrus(assetsDir: string): Promise<{
   const segmentBlobMappings = await uploadMultipleFilesViaCLI(allSegmentFiles, assetsPath);
   Object.assign(blobMappings, segmentBlobMappings);
 
-  // Update and upload playlist.m3u8 files
+  // Collect and update all playlist.m3u8 files
+  const allPlaylistFiles: string[] = [];
+  const playlistMappings: { [key: string]: string } = {}; // tempPath -> originalPath
+
   for (const streamDir of streamDirs) {
     const playlistPath = path.join(assetsPath, streamDir, "playlist.m3u8");
     const relativePath = path.join(streamDir, "playlist.m3u8");
@@ -154,16 +155,34 @@ async function uploadHLSAssetsToWalrus(assetsDir: string): Promise<{
         }
       }
 
-      // Write updated playlist to temp file and upload via CLI
+      // Write updated playlist to temp file
       const tempPlaylistPath = path.join(assetsPath, streamDir, "temp_playlist.m3u8");
       fs.writeFileSync(tempPlaylistPath, playlistContent);
 
-      const blobId = await uploadFileViaCLI(tempPlaylistPath, assetsPath);
-      blobMappings[relativePath] = blobId;
+      const relativeTempPath = path.join(streamDir, "temp_playlist.m3u8");
+      allPlaylistFiles.push(relativeTempPath);
+      playlistMappings[relativeTempPath] = relativePath;
+    }
+  }
 
-      // Clean up temp file
-      fs.unlinkSync(tempPlaylistPath);
-      console.log(`✓ Uploaded updated ${relativePath} -> ${blobId}`);
+  // Upload all playlist files in a single CLI operation
+  if (allPlaylistFiles.length > 0) {
+    console.log(`Uploading ${allPlaylistFiles.length} playlist files in batch...`);
+    const playlistBlobMappings = await uploadMultipleFilesViaCLI(allPlaylistFiles, assetsPath);
+
+    // Map temp paths back to original paths and clean up temp files
+    for (const [tempPath, blobId] of Object.entries(playlistBlobMappings)) {
+      const originalPath = playlistMappings[tempPath];
+      if (originalPath) {
+        blobMappings[originalPath] = blobId;
+        console.log(`✓ Uploaded updated ${originalPath} -> ${blobId}`);
+
+        // Clean up temp file
+        const fullTempPath = path.join(assetsPath, tempPath);
+        if (fs.existsSync(fullTempPath)) {
+          fs.unlinkSync(fullTempPath);
+        }
+      }
     }
   }
 
@@ -186,18 +205,18 @@ async function uploadHLSAssetsToWalrus(assetsDir: string): Promise<{
   const tempMasterPath = path.join(assetsPath, "temp_master.m3u8");
   fs.writeFileSync(tempMasterPath, masterContent);
 
-  const masterBlobId = await uploadFileViaCLI(tempMasterPath, assetsPath);
+  const masterPlaylistBlodMapping = await uploadMultipleFilesViaCLI([tempMasterPath], assetsPath);
 
   // Clean up temp file
   fs.unlinkSync(tempMasterPath);
-  console.log(`✓ Uploaded updated master.m3u8 -> ${masterBlobId}`);
+  console.log(`✓ Uploaded updated master.m3u8 -> ${masterPlaylistBlodMapping[tempMasterPath]}`);
 
   console.log("\n🎉 All HLS assets uploaded to Walrus successfully!");
-  console.log(`Master playlist blob ID: ${masterBlobId}`);
+  console.log(`Master playlist blob ID: ${masterPlaylistBlodMapping[tempMasterPath]}`);
   console.log(`Total files uploaded: ${Object.keys(blobMappings).length + 1}`);
 
   return {
-    masterBlobId,
+    masterBlobId: masterPlaylistBlodMapping[tempMasterPath],
     blobMappings,
   };
 }
