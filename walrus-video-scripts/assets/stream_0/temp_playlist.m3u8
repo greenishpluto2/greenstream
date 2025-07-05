@@ -1,0 +1,17 @@
+#EXTM3U
+#EXT-X-VERSION:6
+#EXT-X-TARGETDURATION:11
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-INDEPENDENT-SEGMENTS
+#EXTINF:10.840000,
+https://aggregator.walrus-testnet.walrus.space/v1/blobs/Mqdl81Nf5bvqgKF4heLCrP2hYcNLdDgKOHq3O4mWlZg
+#EXTINF:9.800000,
+https://aggregator.walrus-testnet.walrus.space/v1/blobs/JuoO7yg0Qm0qUZckmgC1Qcczoq_50GFWwUAmCJNmc3k
+#EXTINF:9.880000,
+https://aggregator.walrus-testnet.walrus.space/v1/blobs/UrB-tTunzU8kkIvtblkgW2zHqmg3RIc3QmS9t3Wim94
+#EXTINF:11.040000,
+https://aggregator.walrus-testnet.walrus.space/v1/blobs/x8YeL25LPl28yTAXbs0QC8mMUdlixBvB47lh204fqyo
+#EXTINF:2.480000,
+https://aggregator.walrus-testnet.walrus.space/v1/blobs/9t1pZsQB6n74_VWErqP95h9U5Tq6WUeRPofmTEet_fw
+#EXT-X-ENDLIST
