@@ -1,2 +1,3 @@
+export { ConversionOptions } from "./src/cli";
 export { uploadHLSAssetsToWalrus, BlobMapping } from "./src/upload";
-export { ConversionOptions, validateInputFile, ensureOutputDir, runFFmpegConversion } from "./src/ffmpeg";
+export { validateInputFile, ensureOutputDir, runFFmpegConversion } from "./src/ffmpeg";

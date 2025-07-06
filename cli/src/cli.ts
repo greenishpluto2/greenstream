@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { validateInputFile, ensureOutputDir, runFFmpegConversion } from "./ffmpeg";
-import { uploadHLSAssetsToWalrus } from "./upload";
 import * as path from "path";
+
+import { uploadHLSAssetsToWalrus } from "./upload";
+import { validateInputFile, ensureOutputDir, runFFmpegConversion } from "./ffmpeg";
 
 const AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space";
 const BLOB_ENDPOINT = `${AGGREGATOR}/v1/blobs`;

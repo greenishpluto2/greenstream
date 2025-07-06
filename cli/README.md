@@ -67,7 +67,7 @@ Follow the instructions at [https://walrus.space/docs/cli](https://walrus.space/
    pnpm build
    ```
 
-5. Install globally (optional):
+5. Install globally:
    ```bash
    pnpm link
    ```
