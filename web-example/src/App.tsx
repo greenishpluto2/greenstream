@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
-const DATA_URL = "https://aggregator.walrus-testnet.walrus.space/v1/blobs/N4FAI95sl_aWcBz_JMDUBNR9XWjWkqKT_J0STyZWtK8";
+const DATA_URL = "https://aggregator.walrus-testnet.walrus.space/v1/blobs/56T9bW9h2gJG6sHLngXW2-uZskiQ4n1xKsJlYi_xdBc";
 
 function useHlsPlayer(videoRef: React.RefObject<HTMLVideoElement | null>, dataUrl: string) {
   const hlsRef = useRef<Hls | null>(null);

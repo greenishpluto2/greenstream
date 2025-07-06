@@ -33,22 +33,23 @@ interface WalrusCLIResult {
  *
  * @param filePaths - Array of file paths to upload (relative to assetsDir)
  * @param assetsDir - The base directory containing the files to upload
+ * @param epoch - The number of epochs to store the files
  * @returns Promise<BlobMapping> - Object mapping file paths to their blob IDs
  *
  * @throws {Error} - If the CLI command fails or returns invalid JSON
  *
  * @example
  * ```typescript
- * const mappings = await uploadToWalrus(['file1.ts', 'file2.ts'], './assets');
+ * const mappings = await uploadToWalrus(['file1.ts', 'file2.ts'], './assets', 2);
  * // Returns: { 'file1.ts': 'blob_id_1', 'file2.ts': 'blob_id_2' }
  * ```
  */
-export async function uploadToWalrus(filePaths: string[], assetsDir: string): Promise<BlobMapping> {
+export async function uploadToWalrus(filePaths: string[], assetsDir: string, epoch: number): Promise<BlobMapping> {
   const blobMappings: BlobMapping = {};
 
   try {
     console.log(`Uploading ${filePaths.length} files via CLI...`);
-    const result = execSync(`walrus store ${filePaths.map((p) => `"${p}"`).join(" ")} --epochs 2 --json`, {
+    const result = execSync(`walrus store ${filePaths.map((p) => `"${p}"`).join(" ")} --epochs ${epoch} --json`, {
       encoding: "utf8",
       cwd: assetsDir,
     });
@@ -142,12 +143,14 @@ export function updatePlaylistContent(playlistContent: string, streamDir: string
  * @param streamDirs - Array of stream directory names
  * @param assetsPath - The resolved path to the assets directory
  * @param blobMappings - Current mapping of file paths to blob IDs
+ * @param epoch - The number of epochs to store the files
  * @returns Updated blob mappings including playlist files
  */
 export async function processAndUploadPlaylists(
   streamDirs: string[],
   assetsPath: string,
-  blobMappings: BlobMapping
+  blobMappings: BlobMapping,
+  epoch: number
 ): Promise<BlobMapping> {
   const allPlaylistFiles: string[] = [];
   const playlistMappings: { [key: string]: string } = {}; // tempPath -> originalPath
@@ -176,7 +179,7 @@ export async function processAndUploadPlaylists(
   // Upload all playlist files in a single CLI operation
   if (allPlaylistFiles.length > 0) {
     console.log(`Uploading ${allPlaylistFiles.length} playlist files in batch...`);
-    const playlistBlobMappings = await uploadToWalrus(allPlaylistFiles, assetsPath);
+    const playlistBlobMappings = await uploadToWalrus(allPlaylistFiles, assetsPath, epoch);
 
     // Map temp paths back to original paths and clean up temp files
     for (const [tempPath, blobId] of Object.entries(playlistBlobMappings)) {
@@ -202,9 +205,10 @@ export async function processAndUploadPlaylists(
  *
  * @param assetsPath - The resolved path to the assets directory
  * @param blobMappings - Current mapping of file paths to blob IDs
+ * @param epoch - The number of epochs to store the files
  * @returns The blob ID of the uploaded master playlist
  */
-export async function processAndUploadMasterPlaylist(assetsPath: string, blobMappings: BlobMapping): Promise<string> {
+export async function processAndUploadMasterPlaylist(assetsPath: string, blobMappings: BlobMapping, epoch: number): Promise<string> {
   const masterPath = path.join(assetsPath, "master.m3u8");
   console.log("Processing master playlist...");
 
@@ -223,7 +227,7 @@ export async function processAndUploadMasterPlaylist(assetsPath: string, blobMap
   const tempMasterPath = path.join(assetsPath, "temp_master.m3u8");
   fs.writeFileSync(tempMasterPath, masterContent);
 
-  const masterPlaylistBlobMapping = await uploadToWalrus([tempMasterPath], assetsPath);
+  const masterPlaylistBlobMapping = await uploadToWalrus([tempMasterPath], assetsPath, epoch);
 
   // Clean up temp file
   fs.unlinkSync(tempMasterPath);
@@ -246,13 +250,14 @@ export async function processAndUploadMasterPlaylist(assetsPath: string, blobMap
  * to their corresponding blob IDs.
  *
  * @param assetsDir - The base directory containing the HLS assets
+ * @param epoch - The number of epochs to store the files
  * @returns Promise<{ masterBlobId: string; blobMappings: BlobMapping }> - Object containing the master blob ID and all blob mappings
  *
  * @throws {Error} - If the CLI command fails or returns invalid JSON
  *
  * @example
  * ```typescript
- * const result = await uploadHLSAssetsToWalrus('./assets');
+ * const result = await uploadHLSAssetsToWalrus('./assets', 2);
  * console.log(`Master playlist URL: ${BLOB_ENDPOINT}/${result.masterBlobId}`);
  * console.log("\nAll blob mappings:");
  * for (const [filePath, blobId] of Object.entries(result.blobMappings)) {
@@ -260,7 +265,7 @@ export async function processAndUploadMasterPlaylist(assetsPath: string, blobMap
  * }
  * ```
  */
-export async function uploadHLSAssetsToWalrus(assetsDir: string): Promise<{
+export async function uploadHLSAssetsToWalrus(assetsDir: string, epoch: number): Promise<{
   masterBlobId: string;
   blobMappings: BlobMapping;
 }> {
@@ -275,14 +280,14 @@ export async function uploadHLSAssetsToWalrus(assetsDir: string): Promise<{
   // Collect and upload all .ts segment files
   const allSegmentFiles = collectSegmentFiles(streamDirs, assetsPath);
   console.log(`Uploading ${allSegmentFiles.length} segment files...`);
-  const segmentBlobMappings = await uploadToWalrus(allSegmentFiles, assetsPath);
+  const segmentBlobMappings = await uploadToWalrus(allSegmentFiles, assetsPath, epoch);
   Object.assign(blobMappings, segmentBlobMappings);
 
   // Process and upload playlist files
-  await processAndUploadPlaylists(streamDirs, assetsPath, blobMappings);
+  await processAndUploadPlaylists(streamDirs, assetsPath, blobMappings, epoch);
 
   // Process and upload master playlist
-  const masterBlobId = await processAndUploadMasterPlaylist(assetsPath, blobMappings);
+  const masterBlobId = await processAndUploadMasterPlaylist(assetsPath, blobMappings, epoch);
 
   console.log("\n🎉 All HLS assets uploaded to Walrus successfully!");
   console.log(`Master playlist blob ID: ${masterBlobId}`);

@@ -79,17 +79,20 @@ Follow the instructions at [https://walrus.space/docs/cli](https://walrus.space/
 Convert an MP4 file to HLS and upload to Walrus:
 
 ```bash
-greenstream video.mp4
+greenstream video.mp4 --epoch 2
 ```
 
 ### Advanced Options
 
 ```bash
-greenstream <input_file> [options]
+greenstream <input_file> --epoch <epochs> [options]
 ```
 
 **Arguments:**
 - `input_file` - Path to the input MP4 file
+
+**Required Options:**
+- `--epoch <epochs>` - Number of epochs to store the blobs in Walrus
 
 **Options:**
 - `-o, --output <dir>` - Output directory for HLS files (default: `./output`)
@@ -99,13 +102,13 @@ greenstream <input_file> [options]
 
 ```bash
 # Convert with default output directory
-greenstream my-video.mp4
+greenstream my-video.mp4 --epoch 2
 
 # Specify custom output directory
-greenstream my-video.mp4 --output ./my-streams
+greenstream my-video.mp4 --epoch 5 --output ./my-streams
 
 # Using short option
-greenstream my-video.mp4 -o ./streams
+greenstream my-video.mp4 --epoch 3 -o ./streams
 ```
 
 ### Quality Levels
